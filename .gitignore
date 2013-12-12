@@ -1,13 +1,16 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
+[Bb]in/
+[Rr]elease*/
+[Dd]ebug*/
+[Aa]rchive/
+*.ncb
+*.suo
+*.user
+*.pch
+.swp
+*.bak
+*.aps
+*.pdb
+*.zip
+*.log
 
-# Compiled Dynamic libraries
-*.so
-*.dylib
 
-# Compiled Static libraries
-*.lai
-*.la
-*.a
