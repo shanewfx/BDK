@@ -2,15 +2,15 @@
 #include <tchar.h>
 #include <Winsock2.h>
 
-#include "\BDK\source\TcpSocket.h"
+#include "..\source\TcpSocket.h"
 using BDK::TcpSocketCallback_t;
 using BDK::TcpClient;
 using BDK::sockets::InetAddress;
 
 #ifdef _DEBUG
-#pragma comment(lib, "\\BDK\\bin\\BDK_d.lib")
+#pragma comment(lib, "..\\..\\bin\\BDK_d.lib")
 #else
-#pragma comment(lib, "\\BDK\\bin\\BDK.lib")
+#pragma comment(lib, "..\\..\\bin\\BDK.lib")
 #endif
 
 void recvData(char* buf, int dataSize, void* usrData)

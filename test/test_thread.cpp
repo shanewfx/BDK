@@ -6,19 +6,19 @@
 
 #include <boost\bind.hpp>
 
-#include "\BDK\source\thread.h"
+#include "..\source\thread.h"
 using BDK::thread;
 
-#include "\BDK\source\threadpool.h"
+#include "..\source\threadpool.h"
 using BDK::thread_pool;
 
-#include "\BDK\source\singleton.h"
+#include "..\source\singleton.h"
 using BDK::singleton;
 
 #ifdef _DEBUG
-#pragma comment(lib, "\\BDK\\bin\\BDK_d.lib")
+#pragma comment(lib, "..\\..\\bin\\BDK_d.lib")
 #else
-#pragma comment(lib, "\\BDK\\bin\\BDK.lib")
+#pragma comment(lib, "..\\..\\bin\\BDK.lib")
 #endif
 
 void thread_func(int id)
