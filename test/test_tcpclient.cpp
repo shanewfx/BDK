@@ -13,6 +13,11 @@ using BDK::sockets::InetAddress;
 #pragma comment(lib, "..\\..\\bin\\BDK.lib")
 #endif
 
+bool connectServer = false;
+bool reconnect = false;
+HANDLE connEvent = NULL;
+
+
 void recvData(char* buf, int dataSize, void* usrData)
 {
     printf("[client] --recv server msg-- %s\n", buf);
@@ -21,6 +26,17 @@ void recvData(char* buf, int dataSize, void* usrData)
 void netNotify(uint32_t eventCode, void* param, void* usrData)
 {
     printf("[netNotify] event: %d -> %s\n", eventCode, BDK::getEventDescriptor(eventCode));
+
+    if (eventCode == BDK::E_NET_CONNECT_SUCCESS) {
+        connectServer = true;
+        reconnect = false;
+    }
+
+    if (eventCode == BDK::E_NET_CONNECT_FAILED) {
+        reconnect = true;
+    }
+
+    SetEvent(connEvent);
 }
 
 int _tmain(int argc, _TCHAR* argv[])
@@ -36,8 +52,16 @@ int _tmain(int argc, _TCHAR* argv[])
     InetAddress serverAddr("127.0.0.1", 58888);
     client.connect(serverAddr);
 
+    connEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+    while (!connectServer) {
+        WaitForSingleObject(connEvent, INFINITE);
+        if (reconnect) {
+            client.connect(serverAddr);
+        }
+    }
+
     int i = 60;
-    while (i > 0) {
+    while (i > 0) { 
         i--;
         Sleep(1000);
         string msg = "hi, I am client";
@@ -45,5 +69,9 @@ int _tmain(int argc, _TCHAR* argv[])
     }
 
     client.disconnect();
+    if (connEvent) {
+        CloseHandle(connEvent);
+        connEvent = NULL;
+    }
     return 0;
 }

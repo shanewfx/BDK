@@ -385,6 +385,11 @@ bool TcpClient::connect(const sockets::InetAddress& serverAddr)
         return false;
     }
 
+    if (m_connfd != INVALID_SOCKET) {
+        disconnect();
+        LogWarning("[connect] maybe reconnect server, disconnect called\n");
+    }
+
     m_connfd = sockets::create();
     if (INVALID_SOCKET == m_connfd) {
         return false;
@@ -464,6 +469,7 @@ int TcpClient::socketProc()
         NOTIFY(E_NET_CONNECT_FAILED, &err);
         return 1;
     }
+    
 
     fd_set fdRead;
     fd_set fdWrite;
@@ -473,7 +479,7 @@ int TcpClient::socketProc()
     FD_SET(m_connfd, &fdWrite);
 
     timeval timeout;
-    timeout.tv_sec  = 1;
+    timeout.tv_sec  = 5;
     timeout.tv_usec = 0;
 
     while (!m_exit) {
@@ -491,6 +497,11 @@ int TcpClient::socketProc()
             break;
         }
         else if (ret == 0) {
+            if (!m_connected) {
+                LogError("!! -- select timeout, connect failed, exit thread --\n");
+                NOTIFY(E_NET_CONNECT_FAILED, NULL);
+                break;
+            }
             continue;
         }
         else {
@@ -533,6 +544,7 @@ int TcpClient::socketProc()
     }
 
     cleanup();
+    LogTrace("=== exit socket thread ===\n");
     return 0;
 }
 

@@ -21,6 +21,7 @@ using BDK::sockets::InetAddress;
 #pragma comment(lib, "..\\..\\bin\\BDK.lib")
 #endif
 
+TcpServer* g_server = NULL;
 
 void recvData(char* buf, int dataSize, void* usrData)
 {
@@ -30,22 +31,21 @@ void recvData(char* buf, int dataSize, void* usrData)
     server->send(msg.c_str(), msg.size());
 }
 
-TcpServer server;
-
-void server_thread()
+void server_thread(void* usrData)
 {
     printf("server_thread begin\n");
+    TcpServer* server = (TcpServer*)usrData;
    
     InetAddress localAddr(58888);
 
     TcpSocketCallback_t callback;
     callback.fn_recv   = recvData;
     callback.fn_notify = NULL;
-    callback.usrData   = &server;
-    server.setCallback(callback);
+    callback.usrData   = server;
+    server->setCallback(callback);
 
-    server.start(localAddr);
-    server.loop();
+    server->start(localAddr);
+    server->loop();
 
     printf("server_thread end\n");
 }
@@ -53,7 +53,9 @@ void server_thread()
 void sigIntHandler(int sig)
 {
     printf("Caught signal: %d, cleaning up, just a second...\n", sig);
-    server.stop();
+    if (g_server) {
+        g_server->stop();
+    }
 
     // ignore all these signals now and let the connection close
     signal(SIGINT, SIG_IGN);
@@ -65,7 +67,10 @@ int _tmain(int argc, _TCHAR* argv[])
     signal(SIGINT, sigIntHandler);
     signal(SIGTERM, sigIntHandler);
 
-    thread serverthread(boost::bind(server_thread), "serverthread");
+    TcpServer server;
+    g_server = &server;
+
+    thread serverthread(boost::bind(server_thread, &server), "serverthread");
     serverthread.start();
 
     printf("====== server is running ======\n");
@@ -84,6 +89,5 @@ int _tmain(int argc, _TCHAR* argv[])
 #endif
     printf("\n====== server is stopped ======\n");
     return 0;
-
 }
 
