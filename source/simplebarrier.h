@@ -17,7 +17,7 @@ public:
 
     }
 
-    ~simple_barrier() {}
+   ~simple_barrier() {}
 
     void count_down()
     {

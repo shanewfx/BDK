@@ -33,7 +33,7 @@ public:
 #endif
     }
 
-    ~mutex_lock()
+   ~mutex_lock()
     {
 #ifdef PTHREAD
         pthread_mutex_destroy(&m_mutex);
@@ -84,7 +84,7 @@ public:
         m_lock.lock();
     }
 
-    ~mutex_lock_guard()
+   ~mutex_lock_guard()
     {
         m_lock.unlock();
         //printf("[mutex_lock_guard] unlock\n");

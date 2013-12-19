@@ -71,7 +71,7 @@ private:
 	Logger();
 	Logger(Logger const&);
 	Logger& operator=(Logger const&);
-	~Logger();
+   ~Logger();
 
     static bool Initialise();
     static void Dispose();

@@ -30,7 +30,7 @@ public:
 
 private:
     singleton() {}
-    ~singleton() {}
+   ~singleton() {}
 
 #ifdef PTHREAD
     static void init()

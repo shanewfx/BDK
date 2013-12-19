@@ -19,7 +19,7 @@ public:
     typedef boost::function<void ()> task_t;
 
     explicit thread_pool(const std::string& name = std::string());
-    ~thread_pool();
+   ~thread_pool();
 
     bool start(int thread_nums);
     void stop();

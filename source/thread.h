@@ -23,7 +23,7 @@ public:
 //#endif
 
     explicit thread(const thread_func_ptr& func, const std::string& name = std::string());
-    ~thread();
+   ~thread();
 
     bool  start();
     bool  join();
