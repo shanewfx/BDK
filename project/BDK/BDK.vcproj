@@ -149,6 +149,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\source\bdktime.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\source\bdkutil.cpp"
 				>
 			</File>
@@ -186,6 +190,10 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\source\bdktime.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\source\bdkutil.h"
 				>

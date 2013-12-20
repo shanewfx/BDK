@@ -2,17 +2,21 @@
 #include <stdarg.h>
 #include <windows.h>
 
+namespace BDK {
+
 FILE*       Logger::m_hLogFile    = NULL;
 LogLevel    Logger::m_LogLevel    = _LOG_TRACE;
 
 std::string Logger::m_strFileDir  = LOG_FILE_DIR;
 std::string Logger::m_strFileName = LOG_FILE_NAME;
-std::string Logger::m_strFilePath = LOG_FILE_PATH;
+std::string Logger::m_strFilePath = "";
 bool        Logger::m_bCreateDir  = true;
 
 bool        Logger::m_bEnableFileLog   = true;
 bool        Logger::m_bEnableDebugView = true;
 bool        Logger::m_bEnableConsole   = true;
+
+int         Logger::m_logFileCount     = 0;
 
 
 char* LogLevelStr[] = {
@@ -149,6 +153,11 @@ void Logger::Log(const LogLevel Level, const char* Format, ...)
 	}
 	else {
 		fflush(m_hLogFile);
+
+        if (ftell(m_hLogFile) >= MAXLOGSIZE) {
+            m_logFileCount++;
+            MakeLogFilePath();
+        }
 	}
 }
 
@@ -157,6 +166,13 @@ void Logger::MakeLogFilePath()
     Dispose();
     m_strFilePath  = m_strFileDir + "\\";
     m_strFilePath += m_strFileName;
+
+    SYSTEMTIME st;		
+    GetLocalTime(&st);
+    char buf[64] = {0};
+    _snprintf_s(buf, sizeof(buf), "_%4d%02d%02d%02d%02d%02d_%d" LOG_FILE_EXT,
+        st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, m_logFileCount);
+    m_strFilePath += buf;
 }
 
 bool Logger::CreateLogDirectory(const std::string& strFileDir)
@@ -244,3 +260,5 @@ void Logger::EnableConsole(bool bEnableConsole)
 {
     m_bEnableConsole = bEnableConsole;
 }
+
+}//namespace BDK

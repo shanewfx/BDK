@@ -3,13 +3,17 @@
 
 #include <string>
 
+namespace BDK {
+
 #define DEBUG_LOG
 #define ENABLE_DEBUGVIEWER
 #define ENABLE_CONSOLE
 
-#define LOG_FILE_DIR  "C:\\DebugLog"
-#define LOG_FILE_NAME "BDK.txt"
-#define LOG_FILE_PATH "C:\\DebugLog\\BDK.txt"
+#define MAXLOGSIZE (10 * 1024 * 1024)
+
+#define LOG_FILE_DIR  "C:\\DebugLog_BDK"
+#define LOG_FILE_NAME "BDK"
+#define LOG_FILE_EXT  ".txt"
 
 typedef enum tagLogLevel {
     _LOG_TRACE,
@@ -21,19 +25,19 @@ typedef enum tagLogLevel {
 } LogLevel;
 
 #ifdef DEBUG_LOG
-	#define LogData              Logger::Instance().Log
-    #define LogTrace(fmt, ...)   Logger::Instance().Log(_LOG_TRACE, fmt, __VA_ARGS__)
-    #define LogInfo(fmt, ...)    Logger::Instance().Log(_LOG_INFO, fmt, __VA_ARGS__)
-    #define LogWarning(fmt, ...) Logger::Instance().Log(_LOG_WARNING, fmt, __VA_ARGS__)
-    #define LogError(fmt, ...)   Logger::Instance().Log(_LOG_ERROR, fmt, __VA_ARGS__)
-    #define LogFatal(fmt, ...)   Logger::Instance().Log(_LOG_FATAL, fmt, __VA_ARGS__)
-	#define SetFileDirectory     Logger::SetLogFileDirectory
-    #define SetFileName          Logger::SetLogFileName
-	#define SetLevel             Logger::SetLogLevel
-    #define DisableLog           Logger::DisableDebugLog
-    #define EnableLogToFile      Logger::EnableLogFile
-    #define EnableLogToDebugView Logger::EnableDebugView
-    #define EnableLogToConsole   Logger::EnableConsole
+	#define LogData              BDK::Logger::Instance().Log
+    #define LogTrace(fmt, ...)   BDK::Logger::Instance().Log(BDK::_LOG_TRACE, fmt, __VA_ARGS__)
+    #define LogInfo(fmt, ...)    BDK::Logger::Instance().Log(BDK::_LOG_INFO, fmt, __VA_ARGS__)
+    #define LogWarning(fmt, ...) BDK::Logger::Instance().Log(BDK::_LOG_WARNING, fmt, __VA_ARGS__)
+    #define LogError(fmt, ...)   BDK::Logger::Instance().Log(BDK::_LOG_ERROR, fmt, __VA_ARGS__)
+    #define LogFatal(fmt, ...)   BDK::Logger::Instance().Log(BDK::_LOG_FATAL, fmt, __VA_ARGS__)
+	#define SetFileDirectory     BDK::Logger::SetLogFileDirectory
+    #define SetFileName          BDK::Logger::SetLogFileName
+	#define SetLevel             BDK::Logger::SetLogLevel
+    #define DisableLog           BDK::Logger::DisableDebugLog
+    #define EnableLogToFile      BDK::Logger::EnableLogFile
+    #define EnableLogToDebugView BDK::Logger::EnableDebugView
+    #define EnableLogToConsole   BDK::Logger::EnableConsole
 #else
 	#define LogData
     #define LogTrace(fmt, ...)
@@ -92,6 +96,10 @@ private:
     static std::string	m_strFileDir;
     static std::string	m_strFileName;
     static std::string	m_strFilePath;
+
+    static int          m_logFileCount;
 };
+
+}//namespace BDK
 
 #endif//_LOG_H

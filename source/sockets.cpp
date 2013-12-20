@@ -1,6 +1,5 @@
 #include "sockets.h"
 #include <WS2tcpip.h>
-#include <strsafe.h>
 
 #pragma comment(lib, "Ws2_32.lib")
 
