@@ -38,6 +38,14 @@ typedef enum tagLogLevel {
     #define EnableLogToFile      BDK::Logger::EnableLogFile
     #define EnableLogToDebugView BDK::Logger::EnableDebugView
     #define EnableLogToConsole   BDK::Logger::EnableConsole
+    #define LogAssert(cond, msg) do {\
+        if (!(cond)) {\
+            char buf[1024 + 1] = {0};\
+            _snprintf_s(buf, 1024, "[ASSERT] [FAILED] in {file: %s, line: %d} : %s\n", __FILE__, __LINE__, msg);\
+            LogFatal(buf);\
+        }\
+    } while (0);
+
 #else
 	#define LogData
     #define LogTrace(fmt, ...)
@@ -52,6 +60,7 @@ typedef enum tagLogLevel {
     #define EnableLogToFile
     #define EnableLogToDebugView
     #define EnableLogToConsole
+    #define LogAssert(cond, msg) 
 #endif
 
 

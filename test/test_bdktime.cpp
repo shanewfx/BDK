@@ -38,6 +38,8 @@ int _tmain(int argc, _TCHAR* argv[])
 
     SetFileDirectory("C:\\BDKLog");
     SetFileName("BDK");
+    LogAssert(1, "test assert success");
+    LogAssert(0, "test assert failed");
     while (1) {
         LogTrace("test log\n");
         Sleep(10);
