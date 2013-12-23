@@ -18,9 +18,9 @@ bool reconnect = false;
 HANDLE connEvent = NULL;
 
 
-void recvData(char* buf, int dataSize, void* usrData)
+void recvData(SOCKET connfd, char* buf, int dataSize, void* usrData)
 {
-    printf("[client] --recv server msg-- %s\n", buf);
+    printf("[client] --{connfd: %d} recv server msg-- %s\n", connfd, buf);
 }
 
 void netNotify(uint32_t eventCode, void* param, void* usrData)

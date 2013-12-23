@@ -23,12 +23,12 @@ using BDK::sockets::InetAddress;
 
 TcpServer* g_server = NULL;
 
-void recvData(char* buf, int dataSize, void* usrData)
+void recvData(SOCKET connfd, char* buf, int dataSize, void* usrData)
 {
-    printf("[server] --recv client msg-- %s\n", buf);
+    printf("[server] --{connfd: %d} recv client msg-- %s\n", connfd, buf);
     TcpServer* server = (TcpServer*)usrData;
     string msg = "hi, I am server";
-    server->send(msg.c_str(), msg.size());
+    server->send(connfd, msg.c_str(), msg.size());
 }
 
 void server_thread(void* usrData)

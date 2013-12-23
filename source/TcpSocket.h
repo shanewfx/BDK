@@ -4,9 +4,11 @@
 #include "sockets.h"
 #include <boost\noncopyable.hpp>
 
+#define SUPPORT_MULTICLIENTS
+
 namespace BDK {
 
-typedef void (*RECV_CALLBACK)(char* buf, int dataSize, void* usrData);
+typedef void (*RECV_CALLBACK)(SOCKET connfd, char* buf, int dataSize, void* usrData);
 typedef void (*NOTIFY_CALLBACK)(uint32_t eventCode, void* param, void* usrData);
 
 typedef struct TcpSocketCallback {
@@ -35,7 +37,7 @@ public:
     bool   start(const sockets::InetAddress& localAddr);
     void   stop();
 
-    int    send(const char* buf, int size);
+    int    send(SOCKET connfd, const char* buf, int size);
     void   setCallback(TcpSocketCallback_t& callback);
 
     bool   isRunning() const { return m_started; }
@@ -61,6 +63,12 @@ private:
 
     SOCKET m_listenfd;
     SOCKET m_connfd;
+
+#ifdef SUPPORT_MULTICLIENTS
+    enum { MAXCLIENTCOUNT = 60 };
+    SOCKET m_clientfds[MAXCLIENTCOUNT];
+    int    m_clientCount;
+#endif
 
     sockets::InetAddress m_localAddr;
     sockets::InetAddress m_peerAddr;

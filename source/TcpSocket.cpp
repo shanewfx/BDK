@@ -27,8 +27,14 @@ TcpServer::TcpServer()
     , m_loopEvent(NULL)
     , m_exit(false)
     , m_started(false)
+#ifdef SUPPORT_MULTICLIENTS
+    , m_clientCount(0)
+#endif
 {
     memset(&m_callback, 0, sizeof(m_callback));
+#ifdef SUPPORT_MULTICLIENTS
+    memset(m_clientfds, INVALID_SOCKET, sizeof(m_clientfds));
+#endif
     sockets::startupWinsock();
 }
 
@@ -144,13 +150,13 @@ bool TcpServer::accept()
     return true;
 }
 
-int TcpServer::send(const char* buf, int size)
+int TcpServer::send(SOCKET connfd, const char* buf, int size)
 {
-    if (INVALID_SOCKET == m_connfd) {
+    if (INVALID_SOCKET == connfd) {
         return -1;
     }
 
-    int ret = sockets::write(m_connfd, buf, size);
+    int ret = sockets::write(connfd, buf, size);
     return ret;
 }
 
@@ -170,6 +176,7 @@ DWORD WINAPI TcpServer::socketThread(LPVOID param)
     return 0;
 }
 
+#ifndef SUPPORT_MULTICLIENTS
 int TcpServer::socketProc()
 {
     fd_set fdMasterSet;
@@ -258,7 +265,7 @@ int TcpServer::socketProc()
                         }
 
                         if (dataLen > 0 && m_callback.fn_recv) {
-                            m_callback.fn_recv(buf, dataLen, m_callback.usrData);
+                            m_callback.fn_recv(m_connfd, buf, dataLen, m_callback.usrData);
                         }
                     }
                 }
@@ -314,7 +321,7 @@ int TcpServer::socketProc()
                     }
 
                     if (dataLen > 0 && m_callback.fn_recv) {
-                        m_callback.fn_recv(buf, dataLen, m_callback.usrData);
+                        m_callback.fn_recv(m_connfd, buf, dataLen, m_callback.usrData);
                     }
                 }
             }
@@ -325,6 +332,143 @@ int TcpServer::socketProc()
     SetEvent(m_loopEvent); //signal event to exit loop
     return 0;
 }
+
+#else
+
+int TcpServer::socketProc()
+{
+    fd_set fdWorkingSet;
+    SOCKET maxfd = m_listenfd;
+
+    //#define ENABLE_SELECT_TIMEOUT
+#ifdef ENABLE_SELECT_TIMEOUT
+    timeval timeout;
+    timeout.tv_sec  = 3 * 60;
+    timeout.tv_usec = 0;
+#endif
+
+    while (!m_exit) {
+        FD_ZERO(&fdWorkingSet);
+        FD_SET(m_listenfd, &fdWorkingSet);
+        maxfd = m_listenfd;
+
+        for (int i = 0; i < MAXCLIENTCOUNT; i++) {
+            if (m_clientfds[i] != INVALID_SOCKET) {
+                //LogTrace("add to set, i: %d, socket: %d\n", i, m_clientfds[i]);
+                FD_SET(m_clientfds[i], &fdWorkingSet);
+                if (m_clientfds[i] > maxfd) {
+                    maxfd = m_clientfds[i];
+                }
+            }
+        }
+
+        int ret = select(maxfd + 1/*0*/, &fdWorkingSet, NULL, NULL, 
+#ifdef ENABLE_SELECT_TIMEOUT
+            &timeout
+#else
+            NULL
+#endif
+            );
+        if (ret < 0) {
+            LogError("@@@ select error, exit thread @@@\n");
+            break;
+        }
+#ifdef ENABLE_SELECT_TIMEOUT
+        else if (0 == ret) {
+            //timeout
+            continue;
+        }
+#endif
+        else {
+            if (m_exit) {
+                LogTrace("@@@ socket thread wakeup, exit thread @@@\n");
+                break; //exit thread
+            }
+
+            //fd active
+            for (int i = 0; i < fdWorkingSet.fd_count; i++) {
+                SOCKET s = fdWorkingSet.fd_array[i];
+                if (!FD_ISSET(s, &fdWorkingSet)) {
+                    continue;
+                }
+                //LogTrace("fd active: %d, fd_count: %d, idx: %d, socket: %d\n", ret, fdWorkingSet.fd_count, i, s);
+
+                if (s == m_listenfd) {
+                    if (accept()) {
+                        if (m_clientCount >= MAXCLIENTCOUNT) {
+                            sockets::close(m_connfd);
+                            m_connfd = INVALID_SOCKET; 
+                            LogWarning("!! -- reject connect, m_clientCount (%d) >=  MAXCLIENTCOUNT(%d) --\n", m_clientCount, MAXCLIENTCOUNT);
+                            continue;
+                        }
+
+                        for (int j = 0; j < MAXCLIENTCOUNT; j++) {
+                            if (m_clientfds[j] == INVALID_SOCKET) {
+                                m_clientfds[j] = m_connfd;
+                                m_clientCount++;
+                                break;
+                            }
+                        }
+
+                        LogTrace("== accpet new connect request, { %s }, m_connfd: %d, m_clientCount: %d ==\n", getPeerAddrInfo().c_str(), m_connfd, m_clientCount);       
+                    }
+                }
+                else {
+                    //connfd, to recv data
+                    int j = 0;
+                    for (; j < MAXCLIENTCOUNT; j++) {
+                        if (m_clientfds[j] == s) {
+                            break;
+                        }
+                    }
+
+                    if (j >= MAXCLIENTCOUNT) {
+                        continue;
+                    }
+                    SOCKET& connfd = m_clientfds[j];
+
+
+                    enum {
+                        RECV_BUF_SIZE = 512 * 1024
+                    };
+                    char buf[RECV_BUF_SIZE];
+                    memset(buf, 0, sizeof(buf));
+
+                    int dataLen = sockets::read(connfd, buf, RECV_BUF_SIZE);
+                    if ((dataLen == 0 || dataLen == SOCKET_ERROR) && connfd != INVALID_SOCKET) {
+                        if (dataLen == SOCKET_ERROR) {
+                            LogWarning("!! -- recv failed, err: %d --\n", sockets::getNetError());
+                        }
+                        else {
+                            LogWarning("@@ -- recv failed, client closed --\n");
+                        }
+                        LogWarning("===== close client socket (connfd: %d) =====\n", connfd);
+
+                        sockets::close(connfd);
+                        connfd = INVALID_SOCKET;  
+                        m_clientCount--;
+                        continue;
+                    }
+
+                    if (dataLen > 0 && m_callback.fn_recv) {
+                        m_callback.fn_recv(connfd, buf, dataLen, m_callback.usrData);
+                    }
+                }
+            }
+        }
+    }
+
+    for (int i = 0; i < MAXCLIENTCOUNT; i++) {
+        if (m_clientfds[i] != INVALID_SOCKET) {
+            sockets::close(m_clientfds[i]);
+            m_clientfds[i] = INVALID_SOCKET; 
+        }
+    }
+
+    SetEvent(m_loopEvent); //signal event to exit loop
+    return 0;
+}
+#endif
 
 void TcpServer::wakeup()
 {
@@ -341,10 +485,23 @@ void TcpServer::cleanup()
         m_listenfd = INVALID_SOCKET;
     }
 
+#ifdef SUPPORT_MULTICLIENTS
+    for (int i = 0; i < MAXCLIENTCOUNT; i++) {
+        if (m_clientfds[i] != INVALID_SOCKET) {
+            sockets::close(m_clientfds[i]);
+            m_clientfds[i] = INVALID_SOCKET; 
+            break;
+        }
+    }
+    m_connfd = INVALID_SOCKET;
+
+#else
+
     if (m_connfd != INVALID_SOCKET) {
         sockets::close(m_connfd);
         m_connfd = INVALID_SOCKET;
     }
+#endif
 }
 
 string TcpServer::getPeerAddrInfo()
@@ -395,6 +552,7 @@ bool TcpClient::connect(const sockets::InetAddress& serverAddr)
         return false;
     }
     sockets::setNonBlock(m_connfd, false);
+    LogTrace("client socket: %d\n", m_connfd);
 
     m_serverAddr = serverAddr;
     m_connected  = false;
@@ -537,7 +695,7 @@ int TcpClient::socketProc()
                 }
 
                 if (dataLen > 0 && m_callback.fn_recv) {
-                    m_callback.fn_recv(buf, dataLen, m_callback.usrData);
+                    m_callback.fn_recv(m_connfd, buf, dataLen, m_callback.usrData);
                 }
             }
         }
